@@ -31,25 +31,44 @@ const Sidebar = () => {
     fileInputRef.current.click();
   };
 
-  const handleFileUpload = (event) => {
-    const files = event.target.files;
-    if (files.length) {
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+  
+    try {
       setUploading(true);
       setUploadProgress(0);
       setUploadedSize(0);
-      let uploaded = 0;
-      const interval = setInterval(() => {
-        uploaded += 100;
-        const progress = Math.min((uploaded / totalSize) * 100, 100);
-        setUploadProgress(progress);
-        setUploadedSize(uploaded);
-        if (progress >= 100) {
-          clearInterval(interval);
-          setTimeout(() => setUploading(false), 1500);
-        }
-      }, 500);
+  
+      const formData = new FormData();
+      formData.append("file", file);
+  
+      const token = localStorage.getItem("token"); // Get JWT token from localStorage
+  
+      const response = await fetch("http://localhost:5000/api/files/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`, // Send token for auth
+        },
+        body: formData,
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Upload failed");
+      }
+  
+      // Optionally update state/UI based on response
+      console.log("✅ Upload successful:", data);
+    } catch (error) {
+      console.error("❌ Upload error:", error.message);
+    } finally {
+      setUploadProgress(100);
+      setTimeout(() => setUploading(false), 1000);
     }
   };
+  
 
   return (
     <div className="w-72 h-screen bg-black text-white p-4 flex flex-col border-r border-gray-800">

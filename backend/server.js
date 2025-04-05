@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const authRoutes = require('./routes/authRoutes');
+const fileRoutes = require('./routes/fileRoutes');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json()); // Use express.json() instead of body-parser
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/files', fileRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
