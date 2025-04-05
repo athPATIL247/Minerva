@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FaFileUpload,
   FaComments,
@@ -20,8 +20,35 @@ const Sidebar = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedSize, setUploadedSize] = useState(0);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
   const totalSize = 1800; // Simulated total size in MB
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5000/api/files", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.message || "Failed to fetch files");
+
+        setUploadedFiles(data); // Assuming backend returns an array of files
+      } catch (err) {
+        console.error("Error fetching files:", err.message);
+      }
+    };
+
+    fetchFiles();
+  }, []);
 
   const toggleSection = (section) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -43,12 +70,12 @@ const Sidebar = () => {
       const formData = new FormData();
       formData.append("file", file);
   
-      const token = localStorage.getItem("token"); // Get JWT token from localStorage
+      const token = localStorage.getItem("token");
   
       const response = await fetch("http://localhost:5000/api/files/upload", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`, // Send token for auth
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
@@ -59,7 +86,13 @@ const Sidebar = () => {
         throw new Error(data.message || "Upload failed");
       }
   
-      // Optionally update state/UI based on response
+      // ✅ Re-fetch files
+      const fileListRes = await fetch("http://localhost:5000/api/files", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const updatedFiles = await fileListRes.json();
+      setUploadedFiles(updatedFiles);
+  
       console.log("✅ Upload successful:", data);
     } catch (error) {
       console.error("❌ Upload error:", error.message);
@@ -140,15 +173,20 @@ const Sidebar = () => {
         </SidebarDropdown>
         <SidebarDropdown
           icon={<FaFileAlt />}
-          title="1 File"
+          title={`${uploadedFiles.length} File${uploadedFiles.length !== 1 ? "s" : ""}`}
           subtitle="Learn about your course files"
           isOpen={openSections.files}
           toggle={() => toggleSection("files")}
         >
-          <DropdownItem title="Private Files" />
-          <DropdownItem title="Textbook" />
-          <DropdownItem title="Chapter3 (1).pdf" />
+          {uploadedFiles.length === 0 ? (
+            <DropdownItem title="No files uploaded yet" />
+          ) : (
+            uploadedFiles.map((file) => (
+              <DropdownItem key={file._id} title={file.originalname} />
+            ))
+          )}
         </SidebarDropdown>
+
       </nav>
     </div>
   );

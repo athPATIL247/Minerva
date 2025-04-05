@@ -9,7 +9,7 @@ module.exports = function (req, res, next) {
 
     try {
         const decoded = jwt.verify(token.split(' ')[1], process.env.JWT_SECRET);
-        req.user = { id: decoded._id };
+        req.user = { id: decoded._id || decoded.id};
         next();
     } catch (error) {
         res.status(401).json({ message: 'Invalid or expired token' });
